@@ -1,4 +1,59 @@
+import { useEffect, useRef, useState } from "react";
+import { searchCities } from "../api.js";
+import { ACTIVITIES } from "../weather.js";
+import CitySearch from "./CitySearch.jsx";
+import ActivitySelector from "./ActivitySelector.jsx";
+
 export default function Planner() {
+    const [query, setQuery] = useState("");
+    const [activityName, setActivityName] = useState("walking");
+    const [search, setSearch] = useState({ status: "idle", cities: [], error: "" });
+    const inputRef = useRef(null);
+    const searchRequest = useRef(null);
+    const busy = search.status === "loading";
+    const activity = ACTIVITIES[activityName];
+
+    useEffect(() => {
+        return () => searchRequest.current?.abort();
+    }, []);
+
+    async function handleSearch(event) {
+        event.preventDefault();
+        if (searchRequest.current) return;
+
+        if (query.trim().length < 2) {
+            setSearch({
+                status: "error",
+                cities: [],
+                error: "Enter at least two characters to find a city.",
+            });
+            inputRef.current.focus();
+            return;
+        }
+
+        const controller = new AbortController();
+        searchRequest.current = controller;
+        setSearch({ status: "loading", cities: [], error: "" });
+
+        try {
+            const cities = await searchCities(query, controller.signal);
+            if (!controller.signal.aborted) {
+                setSearch({ status: "success", cities, error: "" });
+            }
+        } catch (error) {
+            if (!controller.signal.aborted) {
+                setSearch({ status: "error", cities: [], error: error.message });
+            }
+        } finally {
+            if (searchRequest.current === controller) searchRequest.current = null;
+        }
+    }
+
+    function handleCitySelect(city) {
+        setQuery(city.name);
+        setSearch({ status: "selected", cities: [], error: "" });
+    }
+
     return (
         <section id="planner" className="planner" aria-labelledby="planner-title">
             <div className="section-heading">
@@ -9,58 +64,20 @@ export default function Planner() {
                 <span className="small-note">One city. Seven days. Plenty of possibilities.</span>
             </div>
             <div className="controls-card">
-                <form id="search-form" noValidate>
-                    <label htmlFor="city-search">
-                        01 <span>Pick a place</span>
-                    </label>
-                    <div className="search-field">
-                        <span aria-hidden="true">⌕</span>
-                        <input
-                            id="city-search"
-                            name="city"
-                            type="search"
-                            placeholder="Search a city, e.g. Madrid"
-                            autoComplete="off"
-                            minLength={2}
-                            required
-                            disabled
-                            aria-describedby="search-status"
-                        />
-                        <button id="search-button" type="submit" disabled>
-                            Find city <span aria-hidden="true">→</span>
-                        </button>
-                    </div>
-                    <p id="search-status" className="field-status" role="status" />
-                    <ul id="city-results" className="city-results" aria-label="Matching cities" />
-                </form>
-                <fieldset id="activities" disabled>
-                    <legend>
-                        02 <span>Choose your little escape</span>
-                    </legend>
-                    <div className="activity-options">
-                        <label className="activity-option">
-                            <input type="radio" name="activity" value="walking" defaultChecked />
-                            <span>
-                                <span aria-hidden="true">↟</span> Walking
-                            </span>
-                        </label>
-                        <label className="activity-option">
-                            <input type="radio" name="activity" value="cycling" />
-                            <span>
-                                <span aria-hidden="true">◎</span> Cycling
-                            </span>
-                        </label>
-                        <label className="activity-option">
-                            <input type="radio" name="activity" value="picnic" />
-                            <span>
-                                <span aria-hidden="true">♧</span> Picnic
-                            </span>
-                        </label>
-                    </div>
-                </fieldset>
+                <CitySearch
+                    ref={inputRef}
+                    query={query}
+                    onQueryChange={setQuery}
+                    search={search}
+                    busy={busy}
+                    onSubmit={handleSearch}
+                    onSelect={handleCitySelect}
+                />
+                <ActivitySelector value={activityName} onChange={setActivityName} disabled={busy} />
             </div>
             <p id="activity-rules" className="rules">
-                Walking weather: 10–28°C · Rain ≤ 30% · Wind ≤ 20 km/h · Daylight only
+                {activity.label} weather: {activity.minTemperature}–{activity.maxTemperature}°C
+                {" · "}Rain ≤ {activity.maxRain}% · Wind ≤ {activity.maxWind} km/h · Daylight only
             </p>
             <div
                 id="forecast-status"
