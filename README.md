@@ -1,16 +1,19 @@
-# React + Vite
+# Weekend Window - React
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Find the best time of the day for popular outdoor activities in the next 7 days.
 
-Currently, two official plugins are available:
+## Use of AI
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+I used the Codex CLI.
 
-## React Compiler
+Prompt examples:
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- Extract the localStorage use to a custom React hook.
+- When I switch between activities, update the results without fetching the forecast again.
 
-## Expanding the ESLint configuration
+## Autopsy
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+1. Saving the latest forecast in `localStorage` to avoid repeating the same request after reloading.
+   The cached data will expire in 30 minutes, or can be updated with the refresh button.
+2. I used AbortController to cancel previous request that might still be active, to prevent unwanted
+   updates to cache and UI.
