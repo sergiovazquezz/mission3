@@ -1,14 +1,15 @@
 import { useEffect, useRef, useState } from "react";
-import { searchCities, getForecast } from "../api.js";
+import { searchCities } from "../api.js";
 import { ACTIVITIES, getDays, normalizeHours } from "../weather.js";
-import { readForecastCache } from "../cache.js";
+import useForecastCache from "../hooks/useForecastCache.js";
 import Forecast from "./Forecast.jsx";
 import CitySearch from "./CitySearch.jsx";
 import ActivitySelector from "./ActivitySelector.jsx";
 
 export default function Planner() {
+    const { cachedForecast, getForecast } = useForecastCache();
     const [forecast, setForecast] = useState(() => {
-        const cached = readForecastCache();
+        const cached = cachedForecast;
         return {
             city: cached?.city ?? null,
             data: cached?.data ?? null,

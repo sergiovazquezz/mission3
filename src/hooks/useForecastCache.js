@@ -1,9 +1,11 @@
-import { validateForecast } from "./weather.js";
+import { useState } from "react";
+import { validateForecast } from "../weather.js";
+import { fetchForecast } from "../api.js";
 
 const CACHE_KEY = "weekend-window-forecast";
 const CACHE_DURATION_MS = 30 * 60 * 1000;
 
-export function readForecastCache(city = null) {
+function readForecastCache(city = null) {
     try {
         const entry = JSON.parse(localStorage.getItem(CACHE_KEY));
 
@@ -42,7 +44,7 @@ export function readForecastCache(city = null) {
     }
 }
 
-export function writeForecastCache(city, result) {
+function writeForecastCache(city, result) {
     try {
         localStorage.setItem(CACHE_KEY, JSON.stringify({ city, ...result }));
         return true;
@@ -50,4 +52,27 @@ export function writeForecastCache(city, result) {
         // A full or unavailable store must not prevent the forecast from being displayed.
         return false;
     }
+}
+
+export default function useForecastCache() {
+    const [cachedForecast, setCachedForecast] = useState(readForecastCache);
+
+    async function getForecast(city, refresh = false, signal) {
+        signal?.throwIfAborted();
+        const cached = refresh ? null : readForecastCache(city);
+
+        if (cached) {
+            setCachedForecast(cached);
+            return { data: cached.data, retrievedAt: cached.retrievedAt };
+        }
+
+        const result = await fetchForecast(city, signal);
+        // Unmounted or canceled requests must not overwrite the last usable cache.
+        signal?.throwIfAborted();
+        writeForecastCache(city, result);
+        setCachedForecast({ city, ...result });
+        return result;
+    }
+
+    return { cachedForecast, getForecast };
 }

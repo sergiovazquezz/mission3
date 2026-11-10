@@ -1,5 +1,4 @@
 import { validateForecast } from "./weather.js";
-import { readForecastCache, writeForecastCache } from "./cache.js";
 
 const SEARCH_URL = "https://geocoding-api.open-meteo.com/v1/search";
 const FORECAST_URL = "https://api.open-meteo.com/v1/forecast";
@@ -76,13 +75,8 @@ export async function searchCities(query, signal) {
         }));
 }
 
-export async function getForecast(city, refresh = false, signal) {
+export async function fetchForecast(city, signal) {
     signal?.throwIfAborted();
-    const cached = refresh ? null : readForecastCache(city);
-
-    if (cached) {
-        return { data: cached.data, retrievedAt: cached.retrievedAt };
-    }
 
     const url = new URL(FORECAST_URL);
 
@@ -98,11 +92,9 @@ export async function getForecast(city, refresh = false, signal) {
         wind_speed_unit: "kmh",
     });
 
-    // A canceled React request must not replace the last usable cached forecast.
     const result = await requestJSON(url.href, signal);
     signal?.throwIfAborted();
     validateForecast(result.data);
-    writeForecastCache(city, result);
 
     return result;
 }
